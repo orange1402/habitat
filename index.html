@@ -1,1 +1,573 @@
-<!doctype html> <html lang='zh-Hant'> <head> <meta charset='utf-8'> <meta name='viewport' content='width=device-width,initial-scale=1'> <title>生物互動模擬</title> <style> :root{--bg:#f6f8f4;--panel:#fffffff2;--line:#dbe5db;--text:#1f2a24;--muted:#66736c;--accent:#4f8a70;--shadow:0 16px 42px #29412d14;--r:18px}*{box-sizing:border-box}body{margin:0;padding:14px;background:radial-gradient(circle at 12% 0%,#b4dec252,transparent 34%),radial-gradient(circle at 92% 6%,#b9d8e638,transparent 30%),var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC','Microsoft JhengHei',sans-serif}.app{max-width:1880px;margin:auto}.top{display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:9px 12px;margin-bottom:10px}.title{font-size:16px;font-weight:800;letter-spacing:.04em;margin-right:auto}.btn{border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--text);font-size:13px;padding:8px 12px;cursor:pointer}.btn:hover{background:#f8fbf8}.btn.primary{background:var(--accent);border-color:var(--accent);color:white}.btn.small{font-size:12px;padding:6px 9px;border-radius:10px}.layout{display:grid;grid-template-columns:minmax(315px,.75fr) minmax(360px,1fr) minmax(360px,1fr);gap:10px;align-items:start}.panel,.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}.head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);background:#ffffff99}.head h2{font-size:14px;margin:0}.head span,.muted{font-size:11px;color:var(--muted)}.body{padding:10px}.left{display:flex;flex-direction:column;gap:10px}.tool{display:grid;grid-template-columns:auto 1fr;gap:8px 10px;align-items:center;padding:10px 12px;background:#fbfdfb;border:1px solid var(--line);border-radius:14px}.tool b{font-size:12px;color:var(--muted)}.tool small{display:block;font-weight:600;color:#7a877f}.picker{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.sp{display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;border:1px solid var(--line);border-radius:10px;background:white;padding:7px 4px;font-size:12px;cursor:pointer}.sp:hover{background:#f1f8f2}.sp.rm:hover{background:#fff4f4;border-color:#e1bcbc;color:#a54c4c}.dot{width:11px;height:11px;border-radius:50%;display:inline-block;flex:0 0 auto}.habitatBox{padding:4px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,#fafdf9,#eff7f0)}.square{width:100%;aspect-ratio:1/1}canvas{display:block;width:100%;height:100%}#habitat{border:1px solid #cfddcf;border-radius:11px;background:#f8fbf7}.status{padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#f8fbf8;color:var(--muted);font-size:13px;line-height:1.5}.ok{color:#2f6e56;font-weight:700}.warn{color:#a97828;font-weight:700}.bad{color:#ad4747;font-weight:700}.monitor{grid-column:2/4}.monitorHead{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center}.filters{display:flex;flex-wrap:wrap;gap:7px 12px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:#f8fbf8}.filters label{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:12px}.filters input{accent-color:var(--accent)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.chartCard{padding:9px;border:1px solid var(--line);border-radius:14px;background:#ffffffbd;min-width:0}.ct{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:0 0 7px}.ct h3{font-size:13px;margin:0}.ct span{font-size:11px;color:var(--muted)}.chart{height:226px;border:1px solid var(--line);border-radius:12px;background:#fbfdfb}.data{width:100%;border-collapse:collapse;font-size:13px}.data th,.data td{padding:8px 7px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}.data th:first-child,.data td:first-child{text-align:left}.data th{background:#f8fbf8;color:var(--muted);font-weight:700}@media(max-width:1180px){.layout{grid-template-columns:1fr}.monitor{grid-column:1}.grid{grid-template-columns:1fr 1fr}}@media(max-width:760px){body{padding:8px}.grid{grid-template-columns:1fr}.picker{grid-template-columns:repeat(4,1fr)}.monitorHead{grid-template-columns:1fr}.chart{height:220px}} </style> </head> <body> <div class='app'> <header class='top'><button class='btn primary' id='toggle'>暫停</button><div class='title'>生物互動模擬</div><button class='btn' id='reset'>重新開始</button><button class='btn small' id='step'>單步 1 秒</button><button class='btn small' id='shuffle'>重排位置</button><button class='btn small' id='clear'>清空圖表</button><button class='btn small speed' data-v='.5'>0.5x</button><button class='btn small speed' data-v='1'>1x</button><button class='btn small speed' data-v='2'>2x</button><button class='btn small speed' data-v='3'>3x</button><button class='btn small speed primary' data-v='5'>5x</button></header> <main class='layout'> <section class='left'> <div class='tool'><b>投入<small>按一下 10 隻</small></b><div class='picker' id='add'></div><b>移除<small>歸零該生物</small></b><div class='picker' id='remove'></div></div> <section class='panel'><div class='head'><h2>棲地</h2></div><div class='body'><div class='habitatBox'><div class='square'><canvas id='habitat'></canvas></div></div></div></section> <div class='status' id='status'><strong>狀態：</strong>初始化中</div> </section> <section class='panel monitor'><div class='head monitorHead'><h2>數據監測</h2><div class='filters' id='filters'></div></div><div class='body'><div class='grid'><div class='chartCard'><div class='ct'><h3>族群數量趨勢</h3><span>最近 <span id='hist'>120</span> 秒</span></div><canvas class='chart' id='pop'></canvas></div><div class='chartCard'><div class='ct'><h3>標準化數量趨勢</h3><span>前一秒 = 100%，每秒變化</span></div><canvas class='chart' id='norm'></canvas></div><div class='chartCard'><div class='ct'><h3>總生命能量</h3><span>各類加總</span></div><canvas class='chart' id='energy'></canvas></div><div class='chartCard'><div class='ct'><h3>數值</h3><span>目前狀態</span></div><table class='data'><thead><tr><th>生物</th><th>數量</th><th>平均能量</th><th>總能量</th></tr></thead><tbody id='tbody'></tbody></table></div></div></div></section> </main> </div> <script> 'use strict'; const S=[['A','#59a96d',2,120],['B','#3b7bb8',4,30],['C','#7d62b8',6,36],['D','#c95656',6,28],['E','#22252b',2.2,6],['F','#d8b33f',2.5,12],['G','#e28b3c',2.8,14]].map((x,i)=>({id:i,short:x[0],color:x[1],r:x[2],maxE:x[3]})); let org=[],hist=[],visible=Object.fromEntries(S.map(s=>[s.short,true])),selected=Object.fromEntries(S.map(s=>[s.short,false])),running=true,speed=5,last=performance.now(),acc=0,t=0,id=1,world={w:600,h:600}; const H=document.getElementById('habitat'),HC=H.getContext('2d'),PC=document.getElementById('pop').getContext('2d'),NC=document.getElementById('norm').getContext('2d'),EC=document.getElementById('energy').getContext('2d'); function q(n){return document.getElementById(n)}function rand(a,b){return a+Math.random()*(b-a)}function clamp(v,a,b){return Math.max(a,Math.min(b,v))}function prob(r,dt){return 1-Math.exp(-Math.max(0,r)*dt)}function cnt(k){return org.filter(o=>o.live&&o.s.short==k).length}function counts(){let r={total:0};S.forEach(s=>r[s.short]=0);org.forEach(o=>{if(o.live){r[o.s.short]++;r.total++}});return r}function energy(k){let a=org.filter(o=>o.live&&o.s.short==k),sum=a.reduce((m,o)=>m+Math.max(0,o.e),0);return{count:a.length,total:sum,avg:a.length?sum/a.length:0}}function fit(c,ctx){let r=c.getBoundingClientRect(),d=devicePixelRatio||1;c.width=Math.round(r.width*d);c.height=Math.round(r.height*d);ctx.setTransform(d,0,0,d,0,0);return{w:r.width,h:r.height}} function make(s){let a=rand(0,Math.PI*2),r=s.r;return{id:id++,s,x:rand(r,world.w-r),y:rand(r,world.h-r),vx:Math.cos(a),vy:Math.sin(a),e:s.maxE*.65,live:true,cool:0}} function add(k,n=10){let s=S.find(x=>x.short==k);selected[k]=true;for(let i=0;i<n&&org.length<2200;i++)org.push(make(s));record();ui();draw()} function remove(k){org.forEach(o=>{if(o.s.short==k)o.live=false});selected[k]=false;clean();record();ui();draw()} function clean(){org=org.filter(o=>o.live)} function resize(){world=fit(H,HC);[q('pop'),q('norm'),q('energy')].forEach(c=>fit(c,c.getContext('2d')));org.forEach(o=>{o.x=clamp(o.x,o.s.r,world.w-o.s.r);o.y=clamp(o.y,o.s.r,world.h-o.s.r)});draw()}addEventListener('resize',resize); function nearest(o,k,range){let b=null,bd=range*range;for(const x of org){if(!x.live||x.s.short!=k)continue;let dx=x.x-o.x,dy=x.y-o.y,d=dx*dx+dy*dy;if(d<bd){bd=d;b=x}}return b} function steer(o,x,p){if(!x)return;let dx=x.x-o.x,dy=x.y-o.y,d=Math.hypot(dx,dy)||1;o.vx+=dx/d*p;o.vy+=dy/d*p;norm(o)}function norm(o){let l=Math.hypot(o.vx,o.vy)||1;o.vx/=l;o.vy/=l} function move(dt){let sc=speed*dt*60;for(const o of org){o.vx+=rand(-.035,.035);o.vy+=rand(-.035,.035);norm(o);if(o.s.short=='B'||o.s.short=='C')steer(o,nearest(o,'A',70),.025);if(o.s.short=='D')steer(o,nearest(o,'B',120),.026);if(o.s.short=='E')steer(o,nearest(o,'C',120),.04);if(o.s.short=='F')steer(o,nearest(o,'C',110),.035);if(o.s.short=='G')steer(o,nearest(o,'D',150),.055);let sp=[0,.9,.65,1.15,1.25,.95,1.1][o.s.id];o.x+=o.vx*sp*sc;o.y+=o.vy*sp*sc;if(o.x<o.s.r||o.x>world.w-o.s.r){o.x=clamp(o.x,o.s.r,world.w-o.s.r);o.vx*=-1}if(o.y<o.s.r||o.y>world.h-o.s.r){o.y=clamp(o.y,o.s.r,world.h-o.s.r);o.vy*=-1}o.cool=Math.max(0,o.cool-dt)}} function collide(){for(const o of org){if(!o.live||o.cool>0)continue;let prey=null;if(o.s.short=='B'||o.s.short=='C')prey=nearest(o,'A',10);if(o.s.short=='D'&&cnt('B')>8)prey=nearest(o,'B',12);if(o.s.short=='E')prey=nearest(o,'C',9);if(prey){if(o.s.short=='E'){prey.e-=2.5;o.e=clamp(o.e+1,0,o.s.maxE);if(prey.e<=0)prey.live=false}else{prey.live=false;o.e=clamp(o.e+o.s.maxE*.55,0,o.s.maxE)}o.cool=.35}}clean()} function second(){t++;let c=counts();if(c.A<650){for(let i=0;i<Math.max(1,Math.round(c.A*.08));i++)org.push(make(S[0]))}for(const o of org){if(o.s.short!='A')o.e-=o.s.maxE*.018;if(o.e<=0&&o.s.short!='E')o.live=false;let cr=cnt(o.s.short);let born=(o.e>o.s.maxE*.72&&cr<[900,520,260,90,1300,380,80][o.s.id]);if(born&&Math.random()<[0,.08,.035,.018,.15,.045,.025][o.s.id]){let n=o.s.short=='E'?4:(o.s.short=='B'?2:1);for(let i=0;i<n;i++){let baby=make(o.s);baby.x=clamp(o.x+rand(-10,10),o.s.r,world.w-o.s.r);baby.y=clamp(o.y+rand(-10,10),o.s.r,world.h-o.s.r);baby.e=o.s.maxE*.45;org.push(baby)}o.e*=.78}if(o.s.short=='E'&&cnt('C')==0)o.live=false;if(Math.random()<[0,.002,.004,.006,.08,.035,.012][o.s.id])o.live=false}clean();record();ui();charts()} function record(){let c=counts(),r={t};S.forEach(s=>{r[s.short]=c[s.short];r['e'+s.short]=Math.round(energy(s.short).total)});hist.push(r);hist=hist.filter(x=>x.t>=t-120)} function ui(){q('hist').textContent=120;let body=q('tbody');body.innerHTML='';S.forEach(s=>{let e=energy(s.short),tr=document.createElement('tr');tr.innerHTML='<td><span class=dot style=background:'+s.color+'></span> '+s.short+'</td><td>'+e.count+'</td><td>'+Math.round(e.avg)+'</td><td>'+Math.round(e.total)+'</td>';body.appendChild(tr)});let use=S.map(s=>s.short).filter(k=>selected[k]&&k!='E'),c=counts(),van=use.filter(k=>c[k]==0),st=q('status');if(!use.length)st.innerHTML='<strong>狀態：</strong><span class=warn>尚未投入生物</span>｜請先投入至少一種非寄生者生物。';else if(van.length)st.innerHTML='<strong>狀態：</strong><span class=bad>出現族群歸零</span>｜'+van.join('、')+' 已歸零。';else{let recent=hist.filter(x=>x.t>=t-30),big=false;if(recent.length>4)for(const k of use){let a=recent.map(x=>x[k]),mn=Math.min(...a),mx=Math.max(...a),av=a.reduce((p,v)=>p+v,0)/a.length;if(av>0&&(mx-mn)/av>.65)big=true}st.innerHTML='<strong>狀態：</strong><span class='+(big?'warn>明顯波動':'ok>相對穩定')+'</span>｜狀態判斷已排除寄生者 E 的浮動。'}} function draw(){HC.clearRect(0,0,world.w,world.h);HC.fillStyle='#f8fbf7';HC.fillRect(0,0,world.w,world.h);HC.strokeStyle='#56805c14';for(let x=0;x<world.w;x+=28){HC.beginPath();HC.moveTo(x,0);HC.lineTo(x,world.h);HC.stroke()}for(let y=0;y<world.h;y+=28){HC.beginPath();HC.moveTo(0,y);HC.lineTo(world.w,y);HC.stroke()}for(const s of S){HC.fillStyle=s.color;org.forEach(o=>{if(o.live&&o.s==s){HC.beginPath();HC.arc(o.x,o.y,s.r,0,Math.PI*2);HC.fill()}})}} function axes(ctx,w,h,min,max,pct=false){ctx.strokeStyle='#dbe5db';ctx.fillStyle='#66736c';ctx.font='11px sans-serif';let L=46,T=24,R=14,B=30,I=w-L-R,J=h-T-B;for(let i=0;i<=4;i++){let y=T+J*i/4,v=max-(max-min)*i/4;ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(w-R,y);ctx.stroke();ctx.fillText(Math.round(v)+(pct?'%':''),8,y+4)}ctx.strokeStyle='#cbd8cb';ctx.beginPath();ctx.moveTo(L,T);ctx.lineTo(L,h-B);ctx.lineTo(w-R,h-B);ctx.stroke();return{L,T,R,B,I,J}} function lineChart(ctx,canvas,mode){let z=fit(canvas,ctx),w=z.w,h=z.h;ctx.clearRect(0,0,w,h);ctx.fillStyle='#fbfdfb';ctx.fillRect(0,0,w,h);let minT=Math.max(0,t-120),maxT=Math.max(120,t),min=mode=='norm'?70:0,max=mode=='norm'?130:Math.max(10,...hist.flatMap(r=>S.map(s=>r[s.short]||0)));if(mode=='norm'){let vals=[];for(let i=1;i<hist.length;i++)S.forEach(s=>{let p=hist[i-1][s.short]||0,cur=hist[i][s.short]||0;vals.push(p?clamp(cur/p*100,0,300):100)});max=Math.min(300,Math.max(130,Math.ceil((Math.max(...vals,100)+12)/10)*10));min=Math.max(0,Math.min(70,Math.floor((Math.min(...vals,100)-12)/10)*10))}let a=axes(ctx,w,h,min,max,mode=='norm');S.forEach(s=>{if(!visible[s.short])return;ctx.strokeStyle=s.color;ctx.lineWidth=s.short=='E'?1.6:2.2;ctx.beginPath();let start=false;hist.forEach((r,i)=>{if(r.t<minT)return;let val=r[s.short]||0;if(mode=='norm'){let p=i>0?hist[i-1][s.short]||0:val;val=p?clamp(val/p*100,0,300):100}let x=a.L+(r.t-minT)/(maxT-minT)*a.I,y=a.T+(1-(val-min)/(max-min))*a.J;if(!start){ctx.moveTo(x,y);start=true}else ctx.lineTo(x,y)});ctx.stroke()});if(mode=='norm'){let y=a.T+(1-(100-min)/(max-min))*a.J;ctx.strokeStyle='#50645566';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(a.L,y);ctx.lineTo(w-a.R,y);ctx.stroke();ctx.setLineDash([])}ctx.font='11px sans-serif';let x=a.L+4,y=14;S.forEach(s=>{if(visible[s.short]){ctx.fillStyle=s.color;ctx.beginPath();ctx.arc(x,y-3,3.5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#66736c';ctx.fillText(s.short,x+7,y);x+=34}})} function barChart(){let c=q('energy'),z=fit(c,EC),w=z.w,h=z.h;EC.clearRect(0,0,w,h);EC.fillStyle='#fbfdfb';EC.fillRect(0,0,w,h);let data=S.map(s=>({s,v:energy(s.short).total})),max=Math.max(10,...data.map(d=>d.v))*1.15,a=axes(EC,w,h,0,max,false),gap=a.I*.026,bw=(a.I-gap*6)/7;EC.textAlign='center';data.forEach((d,i)=>{let x=a.L+i*(bw+gap),bh=d.v/max*a.J,y=a.T+a.J-bh;EC.fillStyle=d.s.color;EC.fillRect(x,y,bw,bh);EC.fillStyle='#1f2a24';EC.fillText(Math.round(d.v),x+bw/2,y-5);EC.fillStyle='#66736c';EC.fillText(d.s.short,x+bw/2,h-12)});EC.textAlign='left'}function charts(){lineChart(PC,q('pop'),'pop');lineChart(NC,q('norm'),'norm');barChart()} function init(){let a=q('add'),r=q('remove'),f=q('filters');S.forEach(s=>{let b=document.createElement('button');b.className='sp';b.innerHTML='<span class=dot style=background:'+s.color+'></span>'+s.short;b.onclick=()=>add(s.short);a.appendChild(b);let rb=b.cloneNode(true);rb.className='sp rm';rb.onclick=()=>remove(s.short);r.appendChild(rb);let lab=document.createElement('label');lab.innerHTML='<input type=checkbox checked><span class=dot style=background:'+s.color+'></span>'+s.short;lab.querySelector('input').onchange=e=>{visible[s.short]=e.target.checked;charts()};f.appendChild(lab)});q('toggle').onclick=()=>{running=!running;q('toggle').textContent=running?'暫停':'繼續';q('toggle').classList.toggle('primary',running)};q('reset').onclick=()=>{org=[];hist=[];selected=Object.fromEntries(S.map(s=>[s.short,false]));t=0;record();ui();draw();charts()};q('step').onclick=()=>{running=false;q('toggle').textContent='繼續';q('toggle').classList.remove('primary');for(let i=0;i<60;i++){move(1/60);collide()}second();draw()};q('shuffle').onclick=()=>{org.forEach(o=>{o.x=rand(o.s.r,world.w-o.s.r);o.y=rand(o.s.r,world.h-o.s.r)});draw()};q('clear').onclick=()=>{hist=[];record();charts()};document.querySelectorAll('.speed').forEach(b=>b.onclick=()=>{speed=Number(b.dataset.v);document.querySelectorAll('.speed').forEach(x=>x.classList.toggle('primary',x==b))});resize();record();ui();charts();requestAnimationFrame(loop)}function loop(now){let dt=Math.min(.05,(now-last)/1000);last=now;if(running){move(dt);collide();acc+=dt*speed;while(acc>=1){acc-=1;second()}}draw();requestAnimationFrame(loop)}init(); </script> </body> </html>
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>神秘棲地｜生態關係推理實驗室</title>
+<style>
+:root{--bg:#f6f8f4;--panel:rgba(255,255,255,.93);--line:#dbe5db;--text:#1f2a24;--muted:#66736c;--accent:#4f8a70;--shadow:0 16px 42px rgba(41,65,45,.08);--r:18px}
+*{box-sizing:border-box}
+body{margin:0;padding:14px;background:radial-gradient(circle at 12% 0%,rgba(180,222,194,.32),transparent 34%),radial-gradient(circle at 92% 6%,rgba(185,216,230,.22),transparent 30%),var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+button,input,textarea{font-family:inherit}
+.app{max-width:1880px;margin:auto}
+.top{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:9px 12px;margin-bottom:10px}
+.actions{display:flex;flex-wrap:wrap;gap:7px;align-items:center}.speeds{display:flex;flex-wrap:wrap;gap:7px;margin-left:auto}.app-title{font-size:16px;font-weight:800;letter-spacing:.04em;color:#21352b;margin:0 7px 0 2px;white-space:nowrap}
+.btn{border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--text);font-size:13px;padding:8px 12px;cursor:pointer;white-space:nowrap}.btn:hover{background:#f8fbf8}.btn.primary{background:var(--accent);border-color:var(--accent);color:white}.btn.small{font-size:12px;padding:6px 9px;border-radius:10px}
+.layout{display:grid;grid-template-columns:minmax(320px,.74fr) minmax(360px,1fr) minmax(360px,1fr);gap:10px;align-items:start}.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}.habitat-panel{grid-column:1;display:flex;flex-direction:column}.chartpanel{grid-column:2 / 4}.body{padding:10px}.head{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.6)}.head h2{font-size:14px;margin:0}.head span{font-size:11px;color:var(--muted);white-space:nowrap}.monitor-head{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center}
+.habitat-panel .body{display:flex;flex-direction:column;gap:10px}.habitat-title{border:1px solid var(--line);border-radius:14px;background:#fbfdfb}.habitat-title h2{font-size:14px}.wrap{padding:4px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(250,253,249,.98),rgba(239,247,240,.98));flex:0 0 auto}.habitat-square-wrap{width:100%;max-width:none;aspect-ratio:1/1;margin:0}#habitat{display:block;width:100%;height:100%;min-height:0;border:1px solid #cfddcf;border-radius:11px;background:#f8fbf7}
+.species-toolbar{display:grid;grid-template-columns:auto 1fr;gap:7px 10px;align-items:center;background:#fbfdfb;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:0}.toolbar-label{font-size:12px;color:var(--muted);font-weight:800;line-height:1.25}.toolbar-label small{display:block;margin-top:2px;font-size:10px;font-weight:600;color:#7a877f}.species-picker{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.species-option{display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;padding:7px 4px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--text);cursor:pointer;font-size:12px}.species-option:hover{background:#f1f8f2;border-color:#bfd3c3}.species-option:active{transform:translateY(1px)}.species-option.remove:hover{background:#fff4f4;border-color:#e1bcbc;color:#a54c4c}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block;flex:0 0 auto}.species-label{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}.species-label .dot{width:10px;height:10px}.status{margin:0;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#f8fbf8;color:var(--muted);font-size:13px;line-height:1.5}.ok{color:#2f6e56;font-weight:700}.warn{color:#a97828;font-weight:700}.bad{color:#ad4747;font-weight:700}
+.monitor-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.monitor-card{padding:9px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.74);min-width:0}.chart{display:block;width:100%;height:226px;border:1px solid var(--line);border-radius:12px;background:#fbfdfb}.ct{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin:0 0 7px}.ct h3{font-size:13px;margin:0}.ct span{font-size:11px;color:var(--muted)}
+.monitor-filter-row{display:grid;grid-template-columns:auto 1fr;gap:8px 10px;align-items:center;margin:0;padding:0;border:0;background:transparent}.filter-title{font-size:12px;font-weight:800;color:var(--muted);white-space:nowrap}.chartfilters{display:flex;flex-wrap:wrap;gap:7px 12px;justify-content:flex-end}.chartfilters label{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:12px;cursor:pointer}.chartfilters input{accent-color:var(--accent)}.chartfilters .dot{width:9px;height:9px}
+.data{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}.data th,.data td{padding:8px 7px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}.data th:first-child,.data td:first-child{text-align:left}.data th{background:#f8fbf8;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:7px 12px;margin-top:10px;color:var(--muted);font-size:13px}.legend span{display:inline-flex;align-items:center;gap:6px}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}.stat{padding:9px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.82)}.stat .lab{font-size:11px;color:var(--muted);white-space:nowrap}.stat .val{font-size:17px;font-weight:760;font-variant-numeric:tabular-nums}.quick{display:flex;flex-wrap:wrap;gap:7px}.buttons{display:flex;flex-wrap:wrap;gap:7px}.globals{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.field{display:grid;gap:4px;padding:8px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.85)}.field label{font-size:11px;color:var(--muted)}.field input,.pt input{width:100%;border:1px solid #cfd9cf;border-radius:8px;padding:5px 6px;background:#fff;color:var(--text);text-align:right;font-size:12px;font-variant-numeric:tabular-nums}.scroll{max-height:calc(100vh - 198px);overflow:auto;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.66)}.pt{width:100%;border-collapse:collapse;font-size:12px;min-width:820px}.pt th,.pt td{border-bottom:1px solid var(--line);border-right:1px solid #edf2ed;padding:6px;text-align:center}.pt th{position:sticky;top:0;z-index:2;background:#f8fbf8;color:var(--muted);white-space:nowrap}.pt th:first-child{left:0;z-index:3}.pt td:first-child{position:sticky;left:0;z-index:1;background:#fff;text-align:left;white-space:nowrap;font-weight:700}.pt input{width:74px}.rel{width:100%;border-collapse:collapse;margin-top:10px;font-size:12px;border:1px solid var(--line);border-radius:12px;overflow:hidden}.rel th,.rel td{border-bottom:1px solid var(--line);padding:7px;text-align:left;line-height:1.45}.rel th{color:var(--muted);background:#f8fbf8}.norm-note{font-size:11px;color:#66736c;margin-top:6px;line-height:1.45}.section-title{font-size:13px;margin:14px 0 7px}
+.modalbg{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(31,42,36,.38)}.modalbg.show{display:flex}.modal{width:min(760px,100%);background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.18);overflow:hidden}.mh{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}.mh h3{margin:0;font-size:16px}.mb{padding:14px 16px 16px}.mb textarea{width:100%;height:300px;resize:vertical;border:1px solid var(--line);border-radius:14px;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.5}.ma{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+@media(max-width:1180px){.layout{grid-template-columns:1fr}.habitat-panel,.chartpanel{grid-column:1}.habitat-square-wrap{max-width:min(680px,100%);margin:0 auto}.monitor-grid{grid-template-columns:1fr 1fr}.monitor-head{grid-template-columns:1fr}.chartfilters{justify-content:flex-start}.speeds{margin-left:0}}
+@media(max-width:760px){body{padding:8px}.top{gap:7px}.app-title{font-size:15px;order:-1;width:100%;margin:0}.species-toolbar,.monitor-filter-row{grid-template-columns:1fr}.species-picker{grid-template-columns:repeat(4,minmax(0,1fr))}.monitor-grid{grid-template-columns:1fr}.chart{height:220px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top">
+  <div class="actions">
+    <button class="btn primary" id="toggleBtn">暫停</button>
+    <span class="app-title">生物互動模擬</span>
+    <button class="btn" id="resetBtn">重新開始</button>
+    <button class="btn small" id="stepBtn">單步 1 秒</button>
+    <button class="btn small" id="shuffleBtn">重排位置</button>
+    <button class="btn small" id="clearHistoryBtn">清空圖表</button>
+  </div>
+  <div class="speeds">
+    <button class="btn small speedBtn" data-speed="0.5">0.5x</button>
+    <button class="btn small speedBtn" data-speed="1">1x</button>
+    <button class="btn small speedBtn" data-speed="2">2x</button>
+    <button class="btn small speedBtn" data-speed="3">3x</button>
+    <button class="btn small speedBtn" data-speed="5">5x</button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="panel habitat-panel">
+    <div class="body">
+      <section class="species-toolbar">
+        <span class="toolbar-label">投入<small>按一下 10 隻</small></span><div class="species-picker" id="speciesPicker"></div>
+        <span class="toolbar-label">移除<small>歸零該生物</small></span><div class="species-picker" id="speciesRemover"></div>
+      </section>
+      <div class="head habitat-title"><h2>棲地</h2></div>
+      <div class="wrap habitat-square-wrap"><canvas id="habitat"></canvas></div>
+      <div class="status" id="status"><strong>狀態：</strong>初始化中</div>
+    </div>
+  </section>
+
+  <section class="panel chartpanel">
+    <div class="head monitor-head">
+      <h2>數據監測</h2>
+      <div class="monitor-filter-row"><span class="filter-title">顯示數據</span><div class="chartfilters" id="chartFilters"></div></div>
+    </div>
+    <div class="body">
+      <div class="monitor-grid">
+        <div class="monitor-card">
+          <div class="ct"><h3>族群數量趨勢</h3><span>最近 <span id="historyLabel">120</span> 秒</span></div>
+          <canvas class="chart" id="popChart"></canvas>
+        </div>
+        <div class="monitor-card">
+          <div class="ct"><h3>標準化數量趨勢</h3><span>前一秒 = 100%，每秒變化</span></div>
+          <canvas class="chart" id="normPopChart"></canvas>
+        </div>
+        <div class="monitor-card">
+          <div class="ct"><h3>總生命能量</h3><span>各類加總</span></div>
+          <canvas class="chart" id="energyChart"></canvas>
+        </div>
+        <div class="monitor-card">
+          <div class="ct"><h3>數值</h3><span>目前狀態</span></div>
+          <table class="data"><thead><tr><th>生物</th><th>數量</th><th>平均能量</th><th>總能量</th></tr></thead><tbody id="energyBody"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+</div>
+
+<div class="modalbg" id="modalBg">
+  <div class="modal">
+    <div class="mh"><h3 id="modalTitle">參數 JSON</h3><button class="btn" id="closeModalBtn">關閉</button></div>
+    <div class="mb">
+      <textarea id="jsonText"></textarea>
+      <div class="ma"><button class="btn" id="copyJsonBtn">複製</button><button class="btn primary" id="applyJsonBtn">套用並重新開始</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const SPECIES = [
+  {key:"producer",label:"A",short:"A",colorName:"green",color:"#59a96d",radius:2},
+  {key:"primaryA",label:"B",short:"B",colorName:"blue",color:"#3b7bb8",radius:4},
+  {key:"primaryB",label:"C",short:"C",colorName:"purple",color:"#7d62b8",radius:6},
+  {key:"secondary",label:"D",short:"D",colorName:"red",color:"#c95656",radius:6},
+  {key:"parasite",label:"E",short:"E",colorName:"black",color:"#22252b",radius:2.2},
+  {key:"commensal",label:"F",short:"F",colorName:"yellow",color:"#d8b33f",radius:2.5},
+  {key:"mutualist",label:"G",short:"G",colorName:"orange",color:"#e28b3c",radius:2.8}
+];
+
+const DEFAULT_PARAMS = {
+  global:{maxTotal:2000,simSpeed:5,historySeconds:120},
+  producer:{startCount:500,maxCount:600,carryingCapacity:600,speed:0,maxEnergy:120,birthRate:120,deathRate:0.001},
+  primaryA:{startCount:85,maxCount:700,carryingCapacity:360,speed:1.15,maxEnergy:6,birthRate:0.09,deathRate:0.018},
+  primaryB:{startCount:80,maxCount:220,carryingCapacity:30,speed:0.62,maxEnergy:36,birthRate:0.018,deathRate:0.002},
+  secondary:{startCount:12,maxCount:80,carryingCapacity:14,speed:1.28,maxEnergy:6,birthRate:0.018,deathRate:0.006},
+  parasite:{startCount:12,maxCount:1600,carryingCapacity:25,speed:1.35,maxEnergy:0.000001,birthRate:0.18,deathRate:0.35},
+  commensal:{startCount:18,maxCount:500,carryingCapacity:500,speed:1.05,maxEnergy:4,birthRate:0.05,deathRate:0.05},
+  mutualist:{startCount:10,maxCount:45,carryingCapacity:18,speed:1.3,maxEnergy:9,birthRate:0.02,deathRate:0.009}
+};
+
+const EXPERIMENT_COUNTS = Object.fromEntries(SPECIES.map(s=>[s.key,10]));
+const selectedSpecies = Object.fromEntries(SPECIES.map(s=>[s.key,false]));
+
+const FIXED = {
+  ecologyInterval:1,wanderStrength:0.035,lowEnergyDeathMultiplier:1.5,highEnergyBirthMultiplier:2,
+  carryingBirthStrength:2,carryingBirthMax:3,carryingDeathStrength:20,carryingDeathMax:48,
+  primarySharedEnergyCapacity:2160,primarySharedEnergyBirthStrength:2,primarySharedEnergyBirthMax:3,primarySharedEnergyDeathStrength:36,primarySharedEnergyDeathMax:100,primarySharedDeathMultiplier:{primaryA:1,primaryB:0.15},
+  primaryEatSuccess:0.78,secondaryEatSuccess:0.58,secondaryMutualBoost:0.08,primaryEatCooldown:0.27,secondaryEatCooldown:0.52,secondaryMutualCooldownMultiplier:0.55,
+  primaryProducerReserve:90,
+  secondaryPrimaryAReserve:35,
+  primaryProducerDrainRatio:0.25,
+  primaryACompetitorReleaseStrength:0.35,primaryACompetitorReleaseMax:1.35,
+  primaryDetection:82,secondaryDetection:140,primaryChase:0.026,secondaryChase:0.026,
+  secondaryEnergyBudgetRatio:0.10,
+  secondaryPreyDeathStrength:4,secondaryPreyDeathMax:2.5,
+  primaryADensityBirthFloor:0.03,primaryADensityDeathStrength:40,primaryADensityDeathMax:80,primaryASoftCapMultiplier:1.05,
+  parasiteSuccess:0.68,parasiteCooldown:0.42,parasiteDetection:130,parasiteChase:0.04,parasiteDrainRatio:0.16,
+  parasiteDormantHostThreshold:5,parasiteExplosionHostThreshold:20,parasiteMinimumWithHost:1,parasiteOffspringPerBirth:10,parasitePerHostCapacity:10,parasiteEnergyBudgetRatio:0.00005,parasiteHostBirthStrength:0.08,parasiteHostBirthMax:8,parasiteExcessDeathStrength:10,parasiteExcessDeathMax:36,parasitePressureLowRatio:4,parasitePressureHighRatio:6,parasiteHostRecoveryStrength:2.5,parasiteHostRecoveryMax:3.5,parasiteHostSuppressionStartRatio:1,parasiteHostBirthSuppressionStrength:0.07,parasiteHostBirthFloor:0.35,parasiteHostGradientDeathStrength:0.35,parasiteHostGradientDeathMax:4,parasiteHostDeathStrength:1.2,parasiteHostDeathMax:10,
+  primaryBEnergyDeathMultiplier:{below50:2,below30:4,below15:8},
+  commensalBenefitCooldown:0.45,commensalDetection:130,commensalChase:0.04,commensalBenefitRange:22,commensalGainRatio:0.16,
+  commensalTargetPerHost:2,commensalNoHostFloor:6,commensalHostBirthStrength:3.00,commensalHostDeathStrength:12.00,commensalHostBirthMax:5.00,commensalHostDeathMax:30.00,
+  mutualistBenefitCooldown:0.38,mutualistDetection:190,mutualistChase:0.065,mutualistBenefitRange:36,mutualistGainRatio:0.20,
+  mutualistHostBirthStrength:2.40,mutualistHostDeathStrength:4.00,mutualistHostBirthMax:3.20,mutualistHostDeathMax:5.00,
+  mutualistSecondaryBirthStrength:1.60,mutualistSecondaryBirthMax:2.50,
+  mutualistPerSecondaryTarget:1.10,mutualistExcessDeathStrength:8.00,mutualistExcessDeathMax:12.00,mutualistLowHostBirthFloor:0.08,
+  secondaryMutualEnergyGainMultiplier:1.35,
+  energyUseRatio:{primaryA:0.025,primaryB:0.025,secondary:0.0125,parasite:0.022,commensal:0.018,mutualist:0.018},
+  energyGainRatio:{primaryA:0.15,primaryB:0.15,secondary:0.80,parasite:0.25,commensal:0.16,mutualist:0.18},
+  reproductionCostRatio:0.22,newbornEnergyRatio:0.52
+  ,producerOffspringPerBirth:5,primaryAOffspringPerBirth:2
+};
+const ENERGY_DISPLAY_MULTIPLIER={primaryA:5,primaryB:5};
+
+const PARAM_COLUMNS = [
+  {key:"startCount",label:"起始數量",min:0,max:1000,step:1},
+  {key:"maxCount",label:"最大數量",min:0,max:1000,step:1},
+  {key:"carryingCapacity",label:"負荷量",min:0,max:1000,step:1},
+  {key:"speed",label:"速率",min:0,max:5,step:0.05},
+  {key:"maxEnergy",label:"最大能量",min:0.1,max:300,step:0.5},
+  {key:"birthRate",label:"繁衍率",min:0,max:200,step:0.001},
+  {key:"deathRate",label:"死亡率",min:0,max:0.2,step:0.001}
+];
+
+let params = clone(DEFAULT_PARAMS), organisms = [], history = [];
+const chartVisible = Object.fromEntries(SPECIES.map(s=>[s.key,true]));
+let simTime = 0, running = true, lastFrame = performance.now(), ecologyAcc = 0, nextId = 1;
+let world = {width:800,height:610,dpr:1};
+
+const habitat = document.getElementById("habitat"), hctx = habitat.getContext("2d");
+const popChart = document.getElementById("popChart"), pctx = popChart.getContext("2d");
+const normPopChart = document.getElementById("normPopChart"), nctx = normPopChart.getContext("2d");
+const energyChart = document.getElementById("energyChart"), ectx = energyChart.getContext("2d");
+
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function keys(){return SPECIES.map(s=>s.key)}
+function info(type){return SPECIES.find(s=>s.key===type)}
+function getPath(o,path){return path.split(".").reduce((a,k)=>a[k],o)}
+function setPath(o,path,v){const a=path.split("."),last=a.pop();a.reduce((x,k)=>x[k],o)[last]=v}
+function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+function rand(a,b){return a+Math.random()*(b-a)}
+function chance(p){return Math.random()<clamp(p,0,1)}
+function prob(rate,dt){return 1-Math.exp(-Math.max(0,rate)*dt)}
+function stoch(v){const b=Math.floor(Math.max(0,v));return b+(Math.random()<v-b?1:0)}
+function resizeCanvas(c,ctx){const r=c.getBoundingClientRect(),d=window.devicePixelRatio||1,w=Math.max(260,r.width),h=Math.max(200,r.height);c.width=Math.round(w*d);c.height=Math.round(h*d);ctx.setTransform(d,0,0,d,0,0);return{width:w,height:h,dpr:d}}
+function resizeAll(){world=resizeCanvas(habitat,hctx);resizeCanvas(popChart,pctx);resizeCanvas(normPopChart,nctx);resizeCanvas(energyChart,ectx);organisms.forEach(o=>{const r=info(o.type).radius;o.x=clamp(o.x,r,world.width-r);o.y=clamp(o.y,r,world.height-r)});drawAll()}
+function initialEnergy(type){return type==="producer"?params.producer.maxEnergy:params[type].maxEnergy*.62}
+function createOrganism(type,x,y,energy){const s=info(type),a=rand(0,Math.PI*2);return{id:nextId++,type,x:clamp(x??rand(s.radius,world.width-s.radius),s.radius,world.width-s.radius),y:clamp(y??rand(s.radius,world.height-s.radius),s.radius,world.height-s.radius),vx:Math.cos(a),vy:Math.sin(a),radius:s.radius,energy:energy??initialEnergy(type),alive:true,lastEatTime:-999,lastBenefitTime:-999}}
+function addOrganism(type,x,y,energy,options={}){const incoming=energy??initialEnergy(type);if(organisms.length>=params.global.maxTotal||countType(type)>=params[type].maxCount)return false;if(type==="secondary"&&!options.manual&&totalEnergy("secondary").total+incoming>secondaryEnergyLimit())return false;if(type==="parasite"&&(countType("primaryB")===0||potentialEnergy("parasite")+params.parasite.maxEnergy>parasiteEnergyLimit()))return false;organisms.push(createOrganism(type,x,y,incoming));return true}
+function countType(type){let n=0;for(const o of organisms)if(o.alive&&o.type===type)n++;return n}
+function counts(){const c={total:0};keys().forEach(k=>c[k]=0);for(const o of organisms){if(!o.alive)continue;c[o.type]++;c.total++}return c}
+function totalEnergy(type){let total=0,count=0;for(const o of organisms){if(!o.alive||o.type!==type)continue;count++;total+=Math.max(0,o.energy)}return{total,count,avg:count?total/count:0}}
+function displayedEnergy(type){const e=totalEnergy(type),mult=ENERGY_DISPLAY_MULTIPLIER[type]??1;return{total:e.total*mult,count:e.count,avg:e.avg*mult}}
+function formatEnergy(value){if(value>0&&value<.01)return value.toExponential(2);if(value<1)return value.toFixed(4);return value.toFixed(2)}
+function potentialEnergy(type){return countType(type)*params[type].maxEnergy}
+function primarySharedEnergy(){return potentialEnergy("primaryA")+potentialEnergy("primaryB")}
+function parasiteEnergyLimit(){return potentialEnergy("primaryB")*FIXED.parasiteEnergyBudgetRatio}
+function secondaryEnergyLimit(){return potentialEnergy("primaryA")*FIXED.secondaryEnergyBudgetRatio}
+
+function validateParams(){for(const k of keys()){params[k].maxCount=Math.min(params[k].maxCount,params.global.maxTotal);params[k].startCount=Math.min(params[k].startCount,params[k].maxCount);params[k].carryingCapacity=Math.min(params[k].carryingCapacity,params[k].maxCount);params[k].maxEnergy=Math.max(k==="parasite"?.000001:.1,params[k].maxEnergy)}params.global.maxTotal=Math.max(1,params.global.maxTotal);params.global.historySeconds=Math.max(10,params.global.historySeconds);syncInputs()}
+function resetSimulation(){validateParams();organisms=[];history=[];simTime=0;ecologyAcc=0;nextId=1;let remain=params.global.maxTotal;for(const k of keys()){const n=Math.min(params[k].startCount,params[k].maxCount,remain);for(let i=0;i<n;i++)addOrganism(k);remain-=n}recordHistory();updateUI();drawAll()}
+function normalize(o){const l=Math.hypot(o.vx,o.vy)||1;o.vx/=l;o.vy/=l}
+function steer(o,t,str){if(!t||str<=0)return;const dx=t.x-o.x,dy=t.y-o.y,d=Math.hypot(dx,dy)||1;o.vx+=(dx/d)*str;o.vy+=(dy/d)*str;normalize(o)}
+function nearest(o,types,range){const set=new Set(Array.isArray(types)?types:[types]);let best=null,b2=range*range;for(const x of organisms){if(!x.alive||!set.has(x.type))continue;const dx=x.x-o.x,dy=x.y-o.y,d2=dx*dx+dy*dy;if(d2<b2){b2=d2;best=x}}return best}
+
+function updateMovement(dt){
+  const scale=params.global.simSpeed*dt*60;
+  for(const o of organisms){
+    if(!o.alive)continue;
+    o.radius=info(o.type).radius;
+    o.vx+=rand(-FIXED.wanderStrength,FIXED.wanderStrength);o.vy+=rand(-FIXED.wanderStrength,FIXED.wanderStrength);normalize(o);
+    if(o.type==="primaryA"||o.type==="primaryB")steer(o,nearest(o,"producer",FIXED.primaryDetection),FIXED.primaryChase);
+    else if(o.type==="secondary")steer(o,nearest(o,"primaryA",FIXED.secondaryDetection),FIXED.secondaryChase);
+    else if(o.type==="parasite")steer(o,nearest(o,"primaryB",FIXED.parasiteDetection),FIXED.parasiteChase);
+    else if(o.type==="commensal")steer(o,nearest(o,"primaryB",FIXED.commensalDetection),FIXED.commensalChase);
+    else if(o.type==="mutualist")steer(o,nearest(o,"secondary",FIXED.mutualistDetection),FIXED.mutualistChase);
+    const sp=params[o.type].speed;o.x+=o.vx*sp*scale;o.y+=o.vy*sp*scale;
+    if(o.x<o.radius){o.x=o.radius;o.vx=Math.abs(o.vx)}else if(o.x>world.width-o.radius){o.x=world.width-o.radius;o.vx=-Math.abs(o.vx)}
+    if(o.y<o.radius){o.y=o.radius;o.vy=Math.abs(o.vy)}else if(o.y>world.height-o.radius){o.y=world.height-o.radius;o.vy=-Math.abs(o.vy)}
+  }
+}
+
+function buildGrid(){const cellSize=28,g=new Map();for(const o of organisms){if(!o.alive)continue;const gx=Math.floor(o.x/cellSize),gy=Math.floor(o.y/cellSize),key=gx+","+gy;if(!g.has(key))g.set(key,[]);g.get(key).push(o)}return{grid:g,cellSize}}
+function nearList(idx,o){const out=[],gx=Math.floor(o.x/idx.cellSize),gy=Math.floor(o.y/idx.cellSize);for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){const b=idx.grid.get((gx+dx)+","+(gy+dy));if(b)out.push(...b)}return out}
+function hasNear(o,type,range){const r2=range*range;for(const x of organisms){if(!x.alive||x.type!==type)continue;const dx=o.x-x.x,dy=o.y-x.y;if(dx*dx+dy*dy<=r2)return true}return false}
+
+function handleCollisions(){
+  const idx=buildGrid();
+  for(const o of organisms){
+    if(!o.alive)continue;
+    if(o.type==="primaryA"||o.type==="primaryB"){
+      if(countType("producer")>FIXED.primaryProducerReserve)attemptEat(o,["producer"],FIXED.primaryEatSuccess,FIXED.primaryEatCooldown,FIXED.energyGainRatio[o.type],idx);
+    }
+    else if(o.type==="secondary"){
+      if(countType("primaryA")<=FIXED.secondaryPrimaryAReserve)continue;
+      const boosted=hasNear(o,"mutualist",FIXED.mutualistBenefitRange);
+      const success=clamp(FIXED.secondaryEatSuccess+(boosted?FIXED.secondaryMutualBoost:0),0,1);
+      const gain=FIXED.energyGainRatio.secondary*(boosted?FIXED.secondaryMutualEnergyGainMultiplier:1);
+      const cooldown=FIXED.secondaryEatCooldown*(boosted?FIXED.secondaryMutualCooldownMultiplier:1);
+      attemptEat(o,["primaryA"],success,cooldown,gain,idx);
+    }else if(o.type==="parasite")attemptParasite(o,idx);
+    else if(o.type==="commensal")attemptCommensal(o,idx);
+    else if(o.type==="mutualist")attemptMutualist(o,idx);
+  }
+  compact();
+}
+
+function attemptEat(pred,preyTypes,success,cooldown,gain,idx){
+  if(simTime-pred.lastEatTime<cooldown)return;
+  const set=new Set(preyTypes);
+  for(const prey of nearList(idx,pred)){
+    if(!prey.alive||!set.has(prey.type))continue;
+    const dx=prey.x-pred.x,dy=prey.y-pred.y,r=pred.radius+prey.radius+1;
+    if(dx*dx+dy*dy<=r*r){
+      if(chance(success)){if(prey.type==="producer"){prey.energy-=params.producer.maxEnergy*FIXED.primaryProducerDrainRatio;if(prey.energy<=0)prey.alive=false}else prey.alive=false;pred.energy=Math.min(params[pred.type].maxEnergy,pred.energy+params[pred.type].maxEnergy*gain);pred.lastEatTime=simTime}
+      return;
+    }
+  }
+}
+function attemptParasite(p,idx){
+  if(countType("primaryB")<FIXED.parasiteDormantHostThreshold)return;
+  if(simTime-p.lastEatTime<FIXED.parasiteCooldown)return;
+  for(const host of nearList(idx,p)){
+    if(!host.alive||host.type!=="primaryB")continue;
+    const dx=host.x-p.x,dy=host.y-p.y,r=p.radius+host.radius+3;
+    if(dx*dx+dy*dy<=r*r){
+      if(chance(FIXED.parasiteSuccess)){const drain=params.parasite.maxEnergy*FIXED.parasiteDrainRatio;host.energy=Math.max(0,host.energy-drain);p.energy=Math.min(params.parasite.maxEnergy,p.energy+params.parasite.maxEnergy*FIXED.energyGainRatio.parasite);p.lastEatTime=simTime}
+      return;
+    }
+  }
+}
+function attemptCommensal(c,idx){
+  if(simTime-c.lastBenefitTime<FIXED.commensalBenefitCooldown)return;
+  for(const host of nearList(idx,c)){
+    if(!host.alive||host.type!=="primaryB")continue;
+    const dx=host.x-c.x,dy=host.y-c.y,r=FIXED.commensalBenefitRange;
+    if(dx*dx+dy*dy<=r*r){c.energy=Math.min(params.commensal.maxEnergy,c.energy+params.commensal.maxEnergy*FIXED.commensalGainRatio);c.lastBenefitTime=simTime;return}
+  }
+}
+function attemptMutualist(m,idx){
+  if(simTime-m.lastBenefitTime<FIXED.mutualistBenefitCooldown)return;
+  for(const host of nearList(idx,m)){
+    if(!host.alive||host.type!=="secondary")continue;
+    const dx=host.x-m.x,dy=host.y-m.y,r=FIXED.mutualistBenefitRange;
+    if(dx*dx+dy*dy<=r*r){m.energy=Math.min(params.mutualist.maxEnergy,m.energy+params.mutualist.maxEnergy*FIXED.mutualistGainRatio);m.lastBenefitTime=simTime;return}
+  }
+}
+
+function ecologicalStep(dt){
+  simTime+=dt;producerStep(dt);
+  for(const k of ["primaryA","primaryB","secondary","parasite","commensal","mutualist"])consumerStep(k,dt);
+  compact();enforceCaps();enforceEnergyBudgets();enforceParasiteFloor();recordHistory();updateUI();drawCharts();
+}
+function rates(type,o){
+  const p=params[type],n=countType(type);let b=p.birthRate,d=p.deathRate;
+  const carryingRatio=n/Math.max(1,p.carryingCapacity);
+  if(type!=="commensal"){
+    if(carryingRatio<1)b*=Math.min(FIXED.carryingBirthMax,1+(1-carryingRatio)*FIXED.carryingBirthStrength);
+    if(carryingRatio>1)d*=Math.min(FIXED.carryingDeathMax,1+(carryingRatio-1)*FIXED.carryingDeathStrength);
+  }
+  if(type==="primaryA"||type==="primaryB"){
+    const sharedEnergyRatio=primarySharedEnergy()/FIXED.primarySharedEnergyCapacity;
+    if(sharedEnergyRatio<1)b*=Math.min(FIXED.primarySharedEnergyBirthMax,1+(1-sharedEnergyRatio)*FIXED.primarySharedEnergyBirthStrength);
+    if(sharedEnergyRatio>1)d*=Math.min(FIXED.primarySharedEnergyDeathMax,1+(sharedEnergyRatio-1)*FIXED.primarySharedEnergyDeathStrength*FIXED.primarySharedDeathMultiplier[type]);
+  }
+  if(type==="primaryA"){
+    const densityRatio=n/Math.max(1,p.carryingCapacity);
+    if(densityRatio>1){b*=Math.max(FIXED.primaryADensityBirthFloor,1-(densityRatio-1)*2);d*=Math.min(FIXED.primaryADensityDeathMax,1+(densityRatio-1)*FIXED.primaryADensityDeathStrength)}
+    const competitorDeficit=clamp((params.primaryB.carryingCapacity-countType("primaryB"))/params.primaryB.carryingCapacity,0,1);
+    b*=Math.min(FIXED.primaryACompetitorReleaseMax,1+competitorDeficit*FIXED.primaryACompetitorReleaseStrength);
+    const predatorRatio=countType("secondary")/Math.max(1,countType("primaryA"));
+    d*=Math.min(FIXED.secondaryPreyDeathMax,1+predatorRatio*FIXED.secondaryPreyDeathStrength);
+  }
+  if(type==="parasite"){
+    const hostN=countType("primaryB");
+    if(hostN<FIXED.parasiteDormantHostThreshold){b=0;d=0}
+    else{
+      b*=Math.min(FIXED.parasiteHostBirthMax,1+hostN*FIXED.parasiteHostBirthStrength);
+      if(hostN>=FIXED.parasiteExplosionHostThreshold)b*=2.5;
+      const dynamicCapacity=Math.max(FIXED.parasiteMinimumWithHost,hostN*FIXED.parasitePerHostCapacity);
+      const excessRatio=Math.max(0,(n-dynamicCapacity)/dynamicCapacity);
+      if(excessRatio>0)d*=Math.min(FIXED.parasiteExcessDeathMax,1+excessRatio*FIXED.parasiteExcessDeathStrength);
+    }
+  }
+  if(type==="commensal"){
+    const hostN=countType("primaryB");
+    if(hostN===0){b=0;d=0}
+    else{
+      const target=Math.max(FIXED.commensalNoHostFloor,hostN*FIXED.commensalTargetPerHost);
+      const ratio=n/Math.max(1,target);
+      if(ratio<1)b*=Math.min(FIXED.commensalHostBirthMax,1+(1-ratio)*FIXED.commensalHostBirthStrength);
+      if(ratio>1)d*=Math.min(FIXED.commensalHostDeathMax,1+(ratio-1)*FIXED.commensalHostDeathStrength);
+    }
+  }
+  if(type==="mutualist"){
+    const hostRatio=countType("secondary")/Math.max(1,params.secondary.carryingCapacity);
+    if(hostRatio>=1)b*=Math.min(FIXED.mutualistHostBirthMax,1+(hostRatio-1)*FIXED.mutualistHostBirthStrength);
+    else{
+      b*=Math.max(FIXED.mutualistLowHostBirthFloor,hostRatio);
+      d*=Math.min(FIXED.mutualistHostDeathMax,1+(1-hostRatio)*FIXED.mutualistHostDeathStrength);
+    }
+    const hostTarget=Math.max(1,countType("secondary")*FIXED.mutualistPerSecondaryTarget);
+    const excessRatio=Math.max(0,(n-hostTarget)/hostTarget);
+    if(excessRatio>0)d*=Math.min(FIXED.mutualistExcessDeathMax,1+excessRatio*FIXED.mutualistExcessDeathStrength);
+  }
+  if(type==="secondary"){
+    const mutualistRatio=countType("mutualist")/Math.max(1,n);
+    b*=Math.min(FIXED.mutualistSecondaryBirthMax,1+mutualistRatio*FIXED.mutualistSecondaryBirthStrength);
+  }
+  if(o){if(o.energy<p.maxEnergy/5)d*=FIXED.lowEnergyDeathMultiplier;if(o.energy>p.maxEnergy*4/5)b*=FIXED.highEnergyBirthMultiplier}
+  if(type==="primaryB"&&o){
+    const energyRatio=o.energy/p.maxEnergy;
+    if(energyRatio<.15)d*=FIXED.primaryBEnergyDeathMultiplier.below15;
+    else if(energyRatio<.30)d*=FIXED.primaryBEnergyDeathMultiplier.below30;
+    else if(energyRatio<.50)d*=FIXED.primaryBEnergyDeathMultiplier.below50;
+    const parasitePressure=countType("parasite")/Math.max(1,countType("primaryB"));
+    if(parasitePressure<FIXED.parasitePressureLowRatio)b*=Math.min(FIXED.parasiteHostRecoveryMax,1+(FIXED.parasitePressureLowRatio-parasitePressure)*FIXED.parasiteHostRecoveryStrength);
+    const parasiteExcessPressure=Math.max(0,parasitePressure-FIXED.parasiteHostSuppressionStartRatio);
+    if(parasiteExcessPressure>0){
+      b*=Math.max(FIXED.parasiteHostBirthFloor,1-parasiteExcessPressure*FIXED.parasiteHostBirthSuppressionStrength);
+      d*=Math.min(FIXED.parasiteHostGradientDeathMax,1+parasiteExcessPressure*FIXED.parasiteHostGradientDeathStrength);
+    }
+    if(parasitePressure>FIXED.parasitePressureHighRatio)d*=Math.min(FIXED.parasiteHostDeathMax,1+(parasitePressure-FIXED.parasitePressureHighRatio)*FIXED.parasiteHostDeathStrength);
+  }
+  return{birth:b,death:d};
+}
+function producerStep(dt){
+  const n=countType("producer"),r=rates("producer",{energy:params.producer.maxEnergy}),deathP=prob(r.death,dt);
+  for(const o of organisms){if(!o.alive||o.type!=="producer")continue;o.energy=params.producer.maxEnergy;if(chance(deathP))o.alive=false}
+  compact();for(let i=0;i<n*FIXED.producerOffspringPerBirth;i++){if(!addOrganism("producer"))break}
+}
+function consumerStep(type,dt){
+  const p=params[type],births=[];
+  for(const o of organisms){
+    if(!o.alive||o.type!==type)continue;
+    if(type==="parasite"&&countType("primaryB")===0){o.alive=false;continue}
+    const parasiteDormant=type==="parasite"&&countType("primaryB")<FIXED.parasiteDormantHostThreshold;
+    const commensalDormant=type==="commensal"&&countType("primaryB")===0;
+    const energyUseMultiplier=type==="parasite"||type==="commensal"||commensalDormant?0:1;
+    o.energy-=p.maxEnergy*(FIXED.energyUseRatio[type]??0.03)*energyUseMultiplier*dt;o.energy=Math.min(o.energy,p.maxEnergy);
+    if(type!=="parasite"&&o.energy<=0){o.alive=false;continue}
+    const r=rates(type,o);
+    if(chance(prob(r.death,dt))){o.alive=false;continue}
+    if(!parasiteDormant&&o.energy>p.maxEnergy*.35&&chance(prob(r.birth,dt))){
+      const current=countType(type)+births.length;
+      const withinSecondaryBudget=type!=="secondary"||totalEnergy("secondary").total+births.length*p.maxEnergy+p.maxEnergy<=secondaryEnergyLimit();
+      const withinParasiteBudget=type!=="parasite"||totalEnergy("parasite").total+births.length*p.maxEnergy+p.maxEnergy<=parasiteEnergyLimit();
+      if(current<p.maxCount&&organisms.length+births.length<params.global.maxTotal&&withinSecondaryBudget&&withinParasiteBudget){
+        const offspring=type==="parasite"?FIXED.parasiteOffspringPerBirth:(type==="primaryA"?FIXED.primaryAOffspringPerBirth:1);
+        for(let i=0;i<offspring;i++){
+          const projected=countType(type)+births.length;
+          const parasiteRoom=type!=="parasite"||totalEnergy("parasite").total+births.length*p.maxEnergy+p.maxEnergy<=parasiteEnergyLimit();
+          const primaryARoom=type!=="primaryA"||projected<params.primaryA.carryingCapacity*FIXED.primaryASoftCapMultiplier;
+          if(projected>=p.maxCount||organisms.length+births.length>=params.global.maxTotal||!parasiteRoom||!primaryARoom)break;
+          const a=rand(0,Math.PI*2),rr=info(type).radius*3;
+          births.push({type,x:o.x+Math.cos(a)*rr,y:o.y+Math.sin(a)*rr,energy:p.maxEnergy*FIXED.newbornEnergyRatio});
+        }
+        o.energy=Math.max(0,o.energy-p.maxEnergy*FIXED.reproductionCostRatio);
+      }
+    }
+  }
+  compact();for(const b of births){if(!addOrganism(b.type,b.x,b.y,b.energy))break}
+}
+function compact(){organisms=organisms.filter(o=>o.alive)}
+function enforceCaps(){for(const type of keys()){let seen=0;for(const o of organisms){if(!o.alive||o.type!==type)continue;seen++;if(seen>params[type].maxCount)o.alive=false}}compact();if(organisms.length>params.global.maxTotal)organisms=organisms.slice(0,params.global.maxTotal)}
+function enforceEnergyBudgets(){const primaryCurrent=totalEnergy("primaryA").total+totalEnergy("primaryB").total;if(primaryCurrent>FIXED.primarySharedEnergyCapacity){const scale=FIXED.primarySharedEnergyCapacity/primaryCurrent;for(const o of organisms)if(o.alive&&(o.type==="primaryA"||o.type==="primaryB"))o.energy*=scale}for(const [type,limit] of [["secondary",secondaryEnergyLimit()],["parasite",parasiteEnergyLimit()]]){const current=totalEnergy(type).total;if(current<=limit||current<=0)continue;const scale=limit/current;for(const o of organisms)if(o.alive&&o.type===type)o.energy*=scale}}
+function enforceParasiteFloor(){if(selectedSpecies.parasite&&countType("primaryB")>0&&countType("parasite")<FIXED.parasiteMinimumWithHost)organisms.push(createOrganism("parasite"))}
+function recordHistory(){const c=counts(),row={t:simTime,total:c.total};for(const k of keys()){row[k]=c[k];row["e_"+k]=displayedEnergy(k).total}history.push(row);const minT=simTime-params.global.historySeconds;history=history.filter(d=>d.t>=minT)}
+
+function status(){
+  const c=counts();
+  const selected=keys().filter(k=>selectedSpecies[k]);
+  if(!selected.length)return{label:"尚未投入生物",cls:"warn",text:"請勾選至少一種生物，再開始新的實驗。"}
+  const vanished=selected.filter(k=>c[k]===0);
+  if(vanished.length)return{label:"出現族群歸零",cls:"bad",text:`${vanished.map(k=>info(k).label).join("、")} 已歸零。記錄發生時間，並與其他組合比較。`}
+  if(c.total>=params.global.maxTotal)return{label:"達到個體上限",cls:"warn",text:"總個體數已達觀察上限。請記錄哪些生物快速增加。"}
+  const recent=history.filter(d=>d.t>=simTime-30);
+  if(recent.length>=5){
+    const fluctuationTargets=selected.filter(k=>k!=="parasite");
+    for(const k of fluctuationTargets){const vals=recent.map(d=>d[k]),mn=Math.min(...vals),mx=Math.max(...vals),mean=vals.reduce((a,b)=>a+b,0)/vals.length;if(mean>0&&(mx-mn)/mean>.65)return{label:"明顯波動",cls:"warn",text:"最近 30 秒有族群出現較大變化。這通常是值得追蹤的線索。"}}
+    return{label:"相對穩定",cls:"ok",text:"最近 30 秒沒有族群歸零，也沒有劇烈波動。可加入或移除一種生物再比較。"}
+  }
+  return{label:"觀察中",cls:"",text:"建議至少觀察 30 秒，再記錄你看到的變化。"}
+}
+function updateUI(){
+  const c=counts();
+  for(const k of keys()){const el=document.getElementById("count_"+k);if(el)el.textContent=c[k]}
+  document.getElementById("historyLabel").textContent=params.global.historySeconds;
+  const s=status();document.getElementById("status").innerHTML=`<strong>狀態：</strong><span class="${s.cls}">${s.label}</span>｜${s.text}`;
+  updateEnergyTable();syncSpeedButtons();
+}
+function updateEnergyTable(){const body=document.getElementById("energyBody");body.innerHTML="";for(const s of SPECIES){const e=displayedEnergy(s.key),tr=document.createElement("tr");tr.innerHTML=`<td><span class="species-label"><i class="dot" style="background:${s.color}"></i>${s.short}</span></td><td>${e.count}</td><td>${Math.round(e.avg)}</td><td>${Math.round(e.total)}</td>`;body.appendChild(tr)}}
+
+function drawAll(){drawHabitat();drawCharts()}
+function drawHabitat(){
+  const ctx=hctx;ctx.clearRect(0,0,world.width,world.height);ctx.fillStyle="#f8fbf7";ctx.fillRect(0,0,world.width,world.height);
+  ctx.strokeStyle="rgba(86,128,92,.08)";ctx.lineWidth=1;
+  for(let x=0;x<=world.width;x+=28){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,world.height);ctx.stroke()}
+  for(let y=0;y<=world.height;y+=28){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(world.width,y);ctx.stroke()}
+  for(const type of ["producer","primaryA","primaryB","secondary","commensal","mutualist","parasite"]){
+    const s=info(type);ctx.fillStyle=s.color;ctx.strokeStyle="rgba(255,255,255,.88)";ctx.lineWidth=type==="parasite"?.5:1;
+    for(const o of organisms){if(!o.alive||o.type!==type)continue;ctx.beginPath();ctx.arc(o.x,o.y,s.radius,0,Math.PI*2);ctx.fill();if(type!=="producer")ctx.stroke()}
+  }
+}
+function setupChart(c,ctx){const r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;if(c.width!==Math.round(r.width*d)||c.height!==Math.round(r.height*d)){c.width=Math.round(r.width*d);c.height=Math.round(r.height*d);ctx.setTransform(d,0,0,d,0,0)}return{width:r.width,height:r.height}}
+function drawCharts(){drawPopulationChart();drawNormalizedPopulationChart();drawEnergyChart()}
+function axes(ctx,pad,iw,ih,w,h,maxY){ctx.save();ctx.strokeStyle="#dbe5db";ctx.fillStyle="#66736c";ctx.lineWidth=1;ctx.font="11px -apple-system,BlinkMacSystemFont,'Noto Sans TC',sans-serif";for(let i=0;i<=4;i++){const y=pad.top+ih*(i/4);ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(w-pad.right,y);ctx.stroke();ctx.fillText(Math.round(maxY*(1-i/4)),8,y+4)}ctx.strokeStyle="#cbd8cb";ctx.beginPath();ctx.moveTo(pad.left,pad.top);ctx.lineTo(pad.left,h-pad.bottom);ctx.lineTo(w-pad.right,h-pad.bottom);ctx.stroke();ctx.fillText("時間",w-42,h-10);ctx.restore()}
+function axesBars(ctx,pad,iw,ih,w,h,maxY){ctx.save();ctx.strokeStyle="#dbe5db";ctx.fillStyle="#66736c";ctx.lineWidth=1;ctx.font="11px -apple-system,BlinkMacSystemFont,'Noto Sans TC',sans-serif";for(let i=0;i<=4;i++){const y=pad.top+ih*(i/4);ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(w-pad.right,y);ctx.stroke();ctx.fillText(Math.round(maxY*(1-i/4)),8,y+4)}ctx.strokeStyle="#cbd8cb";ctx.beginPath();ctx.moveTo(pad.left,pad.top);ctx.lineTo(pad.left,h-pad.bottom);ctx.lineTo(w-pad.right,h-pad.bottom);ctx.stroke();ctx.restore()}
+function drawPopulationChart(){
+  const ctx=pctx,{width:w,height:h}=setupChart(popChart,ctx);ctx.clearRect(0,0,w,h);ctx.fillStyle="#fbfdfb";ctx.fillRect(0,0,w,h);
+  const pad={left:44,right:16,top:26,bottom:32},iw=w-pad.left-pad.right,ih=h-pad.top-pad.bottom,minT=Math.max(0,simTime-params.global.historySeconds),maxT=Math.max(params.global.historySeconds,simTime);
+  const maxY=Math.max(10,params.producer.maxCount,...history.map(d=>Math.max(...keys().map(k=>d[k]||0))));
+  axes(ctx,pad,iw,ih,w,h,maxY);for(const s of SPECIES)if(chartVisible[s.key])line(ctx,s.key,s.color,minT,maxT,maxY,pad,iw,ih);legendChart(ctx,pad.left+4,14,w);
+}
+function drawNormalizedPopulationChart(){
+  const ctx=nctx,{width:w,height:h}=setupChart(normPopChart,ctx);ctx.clearRect(0,0,w,h);ctx.fillStyle="#fbfdfb";ctx.fillRect(0,0,w,h);
+  const pad={left:48,right:16,top:28,bottom:32},iw=w-pad.left-pad.right,ih=h-pad.top-pad.bottom,minT=Math.max(0,simTime-params.global.historySeconds),maxT=Math.max(params.global.historySeconds,simTime);
+  const visible=history.filter(d=>d.t>=minT);
+
+  // 相鄰百分比：目前數量 ÷ 前一筆數量 × 100。
+  // 第一筆固定為 100%；若前一筆為 0，為避免無限大，該點也固定為 100%。
+  let maxY=140;
+  let minY=60;
+  const seriesCache={};
+
+  for(const s of SPECIES){
+    const arr=[];
+    for(let i=0;i<visible.length;i++){
+      const current=visible[i][s.key]||0;
+      const previous=i>0?(visible[i-1][s.key]||0):current;
+      let pct=100;
+      if(i>0 && previous>0) pct=(current/previous)*100;
+      pct=Math.max(0,Math.min(300,pct));
+      arr.push({t:visible[i].t,pct});
+      maxY=Math.max(maxY,pct);
+      minY=Math.min(minY,pct);
+    }
+    seriesCache[s.key]=arr;
+  }
+
+  const rangePadding=12;
+  maxY=Math.min(300,Math.ceil((maxY+rangePadding)/10)*10);
+  minY=Math.max(0,Math.floor((minY-rangePadding)/10)*10);
+  if(maxY-minY<60){maxY=130;minY=70}
+
+  percentAxes(ctx,pad,iw,ih,w,h,minY,maxY);
+  for(const s of SPECIES)if(chartVisible[s.key])stepPercentLine(ctx,s.key,s.color,seriesCache[s.key],minT,maxT,minY,maxY,pad,iw,ih);
+  referenceLine100(ctx,pad,iw,ih,100,minY,maxY);
+  legendChart(ctx,pad.left+4,14,w);
+}
+function percentAxes(ctx,pad,iw,ih,w,h,minY,maxY){
+  ctx.save();ctx.strokeStyle="#dbe5db";ctx.fillStyle="#66736c";ctx.lineWidth=1;ctx.font="11px -apple-system,BlinkMacSystemFont,'Noto Sans TC',sans-serif";
+  for(let i=0;i<=4;i++){
+    const y=pad.top+ih*(i/4);
+    const value=maxY-(maxY-minY)*(i/4);
+    ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(w-pad.right,y);ctx.stroke();
+    ctx.fillText(Math.round(value)+"%",8,y+4)
+  }
+  ctx.strokeStyle="#cbd8cb";ctx.beginPath();ctx.moveTo(pad.left,pad.top);ctx.lineTo(pad.left,h-pad.bottom);ctx.lineTo(w-pad.right,h-pad.bottom);ctx.stroke();ctx.fillText("時間",w-42,h-10);ctx.restore()
+}
+function referenceLine100(ctx,pad,iw,ih,value,minY,maxY){
+  const y=pad.top+(1-(value-minY)/(maxY-minY))*ih;
+  ctx.save();ctx.strokeStyle="rgba(80,100,85,.42)";ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(pad.left+iw,y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle="#66736c";ctx.font="11px -apple-system,BlinkMacSystemFont,'Noto Sans TC',sans-serif";ctx.fillText("100%",pad.left+4,y-5);ctx.restore()
+}
+function stepPercentLine(ctx,key,color,data,minT,maxT,minY,maxY,pad,iw,ih){
+  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=["parasite","commensal","mutualist"].includes(key)?1.8:2.2;ctx.beginPath();
+  let started=false;
+  for(const d of data){
+    const x=pad.left+((d.t-minT)/Math.max(1,maxT-minT))*iw;
+    const y=pad.top+(1-(d.pct-minY)/(maxY-minY))*ih;
+    if(!started){ctx.moveTo(x,y);started=true}else ctx.lineTo(x,y)
+  }
+  ctx.stroke();ctx.restore()
+}
+function line(ctx,key,color,minT,maxT,maxY,pad,iw,ih){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=["parasite","commensal","mutualist"].includes(key)?1.8:2.2;ctx.beginPath();let started=false;for(const d of history){if(d.t<minT)continue;const x=pad.left+((d.t-minT)/Math.max(1,maxT-minT))*iw,y=pad.top+(1-(d[key]||0)/maxY)*ih;if(!started){ctx.moveTo(x,y);started=true}else ctx.lineTo(x,y)}ctx.stroke();ctx.restore()}
+function legendChart(ctx,x,y,w){ctx.save();ctx.font="11px -apple-system,BlinkMacSystemFont,'Noto Sans TC',sans-serif";let cur=x,row=y;for(const s of SPECIES){if(!chartVisible[s.key])continue;ctx.fillStyle=s.color;ctx.beginPath();ctx.arc(cur,row,3.5,0,Math.PI*2);ctx.fill();ctx.fillStyle="#66736c";ctx.fillText(s.short,cur+7,row+4);cur+=ctx.measureText(s.short).width+34;if(cur>w-90){cur=x;row+=14}}ctx.restore()}
+function drawEnergyChart(){
+  const ctx=ectx,{width:w,height:h}=setupChart(energyChart,ctx);ctx.clearRect(0,0,w,h);ctx.fillStyle="#fbfdfb";ctx.fillRect(0,0,w,h);
+  const pad={left:48,right:18,top:22,bottom:42},iw=w-pad.left-pad.right,ih=h-pad.top-pad.bottom;
+  const data=SPECIES.map(s=>({label:s.short,value:displayedEnergy(s.key).total,color:s.color})),maxY=Math.max(10,...data.map(d=>d.value))*1.12;
+  axesBars(ctx,pad,iw,ih,w,h,maxY);const gap=iw*.026,barW=(iw-gap*(data.length-1))/data.length;
+  ctx.save();ctx.font="11px -apple-system,BlinkMacSystemFont,'Noto Sans TC',sans-serif";ctx.textAlign="center";
+  data.forEach((d,i)=>{const x=pad.left+i*(barW+gap),bh=(d.value/maxY)*ih,y=pad.top+ih-bh;ctx.fillStyle=d.color;roundRect(ctx,x,y,Math.max(4,barW),bh,7);ctx.fill();ctx.fillStyle="#1f2a24";ctx.fillText(d.value.toFixed(0),x+barW/2,y-5);ctx.fillStyle="#66736c";ctx.fillText(d.label,x+barW/2,h-16)});ctx.restore()
+}
+function roundRect(ctx,x,y,w,h,r){const rr=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+rr,y);ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath()}
+
+function buildLegend(){const root=document.getElementById("legend");root.innerHTML="";for(const s of SPECIES){const item=document.createElement("span");item.innerHTML=`<i class="dot" style="background:${s.color}"></i>${s.label}`;root.appendChild(item)}}
+function buildChartFilters(){const root=document.getElementById("chartFilters");root.innerHTML="";for(const s of SPECIES){const label=document.createElement("label"),input=document.createElement("input");input.type="checkbox";input.checked=chartVisible[s.key];input.addEventListener("change",()=>{chartVisible[s.key]=input.checked;drawCharts()});label.append(input);label.insertAdjacentHTML("beforeend",`<i class="dot" style="background:${s.color}"></i>${s.short}`);root.appendChild(label)}}
+function buildSpeciesPicker(){const addRoot=document.getElementById("speciesPicker"),removeRoot=document.getElementById("speciesRemover");addRoot.innerHTML="";removeRoot.innerHTML="";for(const s of SPECIES){const addButton=document.createElement("button");addButton.type="button";addButton.className="species-option";addButton.dataset.species=s.key;addButton.title=`投入 10 隻 ${s.short}`;addButton.innerHTML=`<i class="dot" style="background:${s.color}"></i><span>${s.short}</span>`;addButton.addEventListener("click",()=>addSpeciesBatch(s.key));addRoot.appendChild(addButton);const removeButton=document.createElement("button");removeButton.type="button";removeButton.className="species-option remove";removeButton.dataset.species=s.key;removeButton.title=`歸零 ${s.short}`;removeButton.innerHTML=`<i class="dot" style="background:${s.color}"></i><span>${s.short}</span>`;removeButton.addEventListener("click",()=>removeSpecies(s.key));removeRoot.appendChild(removeButton)}}
+function addSpeciesBatch(type){selectedSpecies[type]=true;let added=0;for(let i=0;i<EXPERIMENT_COUNTS[type];i++)if(addOrganism(type,null,null,null,{manual:true}))added++;recordHistory();updateUI();drawAll();return added}
+function removeSpecies(type){for(const o of organisms)if(o.alive&&o.type===type)o.alive=false;selectedSpecies[type]=false;compact();recordHistory();updateUI();drawAll()}
+function clearHabitat(){for(const k of keys()){selectedSpecies[k]=false;params[k].startCount=0}resetSimulation()}
+function buildStats(){const root=document.getElementById("stats");root.innerHTML="";for(const s of SPECIES){const div=document.createElement("div");div.className="stat";div.innerHTML=`<div class="lab"><i class="dot" style="background:${s.color}"></i> ${s.short}</div><div class="val" id="count_${s.key}">0</div>`;root.appendChild(div)}root.insertAdjacentHTML("beforeend",`<div class="stat"><div class="lab">總個體數</div><div class="val" id="totalCount">0</div></div><div class="stat"><div class="lab">模擬時間</div><div class="val" id="simTime">0s</div></div>`)}
+function buildGlobals(){const root=document.getElementById("globals"),gs=[["global.maxTotal","總上限",300,2000,10],["global.simSpeed","模擬速度",.2,5,.1],["global.historySeconds","圖表秒數",30,300,10]];root.innerHTML="";for(const g of gs)root.appendChild(makeField(g))}
+function makeField([path,label,min,max,step]){const div=document.createElement("div");div.className="field";const lab=document.createElement("label");lab.textContent=label;const input=document.createElement("input");input.type="number";input.min=min;input.max=max;input.step=step;input.value=getPath(params,path);input.dataset.path=path;input.addEventListener("change",onInputChange);div.append(lab,input);return div}
+function buildParamTable(){const table=document.getElementById("paramTable");table.innerHTML="";const thead=document.createElement("thead"),trh=document.createElement("tr");trh.innerHTML="<th>生物</th>"+PARAM_COLUMNS.map(c=>`<th>${c.label}</th>`).join("");thead.appendChild(trh);table.appendChild(thead);const tbody=document.createElement("tbody");for(const s of SPECIES){const tr=document.createElement("tr");tr.innerHTML=`<td><span class="dot ${s.colorName}"></span> ${s.short}</td>`;for(const col of PARAM_COLUMNS){const td=document.createElement("td"),input=document.createElement("input");input.type="number";input.min=col.min;input.max=col.max;input.step=col.step;input.value=params[s.key][col.key];input.dataset.path=`${s.key}.${col.key}`;input.title=`${s.label}｜${col.label}`;input.addEventListener("change",onInputChange);td.appendChild(input);tr.appendChild(td)}tbody.appendChild(tr)}table.appendChild(tbody)}
+function onInputChange(e){const input=e.target,raw=Number(input.value);if(!Number.isFinite(raw)){input.value=getPath(params,input.dataset.path);return}const v=clamp(raw,Number(input.min),Number(input.max));setPath(params,input.dataset.path,v);validateParams();updateUI();drawCharts()}
+function syncInputs(){document.querySelectorAll("input[data-path]").forEach(input=>{const v=getPath(params,input.dataset.path);if(String(input.value)!==String(v))input.value=v})}
+function syncSpeedButtons(){const speed=Number(params.global.simSpeed).toFixed(1);document.querySelectorAll(".speedBtn").forEach(b=>b.classList.toggle("primary",Number(b.dataset.speed).toFixed(1)===speed))}
+function shufflePositions(){for(const o of organisms){const r=info(o.type).radius;o.x=rand(r,world.width-r);o.y=rand(r,world.height-r);const a=rand(0,Math.PI*2);o.vx=Math.cos(a);o.vy=Math.sin(a)}drawHabitat()}
+function clearHistory(){history=[];recordHistory();drawCharts()}
+
+function exportParams(){showModal("export");document.getElementById("jsonText").value=JSON.stringify(params,null,2);document.getElementById("applyJsonBtn").style.display="none"}
+function importParams(){showModal("import");document.getElementById("jsonText").value="";document.getElementById("applyJsonBtn").style.display="inline-block"}
+function showModal(mode){document.getElementById("modalBg").classList.add("show");document.getElementById("modalTitle").textContent=mode==="export"?"匯出目前參數 JSON":"匯入參數 JSON";setTimeout(()=>document.getElementById("jsonText").focus(),50)}
+function hideModal(){document.getElementById("modalBg").classList.remove("show")}
+function convertOldSpecies(o,over={}){if(!o||typeof o!=="object")return over;return{startCount:o.startCount,maxCount:o.maxCount,carryingCapacity:o.carryingCapacity,speed:o.speed,maxEnergy:o.maxEnergy??o.displayEnergy??o.initialEnergy,birthRate:o.birthRate??o.reproductionRate,deathRate:o.deathRate??o.baseDeathRate,...over}}
+function mergeParams(base,incoming){if(!incoming||typeof incoming!=="object")return base;if(incoming.primary&&!incoming.primaryA){incoming.primaryA=convertOldSpecies(incoming.primary,{startCount:Math.round((incoming.primary.startCount??120)*.67),maxCount:Math.round((incoming.primary.maxCount??230)*.70),carryingCapacity:Math.round((incoming.primary.carryingCapacity??140)*.68)});incoming.primaryB=convertOldSpecies(incoming.primary,{startCount:Math.round((incoming.primary.startCount??120)*.50),maxCount:Math.round((incoming.primary.maxCount??230)*.61),carryingCapacity:Math.round((incoming.primary.carryingCapacity??140)*.57),birthRate:(incoming.primary.reproductionRate??incoming.primary.birthRate??.032)*.9,deathRate:(incoming.primary.baseDeathRate??incoming.primary.deathRate??.006)*1.1,speed:(incoming.primary.speed??1)*.95})}if(incoming.producer)incoming.producer=convertOldSpecies(incoming.producer,{maxEnergy:incoming.producer.maxEnergy??incoming.producer.displayEnergy??20,birthRate:incoming.producer.birthRate??.2,deathRate:incoming.producer.deathRate??.01});if(incoming.secondary)incoming.secondary=convertOldSpecies(incoming.secondary,{maxEnergy:incoming.secondary.maxEnergy??30,birthRate:incoming.secondary.reproductionRate??incoming.secondary.birthRate??.02,deathRate:incoming.secondary.baseDeathRate??incoming.secondary.deathRate??.008});for(const k of Object.keys(incoming)){if(incoming[k]&&typeof incoming[k]==="object"&&!Array.isArray(incoming[k])){if(!base[k])base[k]={};mergeParams(base[k],incoming[k])}else if(typeof incoming[k]==="number")base[k]=incoming[k]}return base}
+function applyImported(){try{params=mergeParams(clone(DEFAULT_PARAMS),JSON.parse(document.getElementById("jsonText").value));validateParams();resetSimulation();hideModal()}catch(e){alert("JSON 格式錯誤，請確認是否完整貼上參數資料。")}}
+async function copyJson(){const t=document.getElementById("jsonText");t.select();try{await navigator.clipboard.writeText(t.value)}catch{document.execCommand("copy")}}
+
+function bind(){
+  document.getElementById("toggleBtn").onclick=()=>{running=!running;const b=document.getElementById("toggleBtn");b.textContent=running?"暫停":"繼續";b.classList.toggle("primary",running)};
+  document.getElementById("stepBtn").onclick=()=>{running=false;const b=document.getElementById("toggleBtn");b.textContent="繼續";b.classList.remove("primary");for(let i=0;i<20;i++){updateMovement(1/60);handleCollisions()}ecologicalStep(1);drawHabitat()};
+  document.getElementById("resetBtn").onclick=clearHabitat;
+  document.getElementById("shuffleBtn").onclick=shufflePositions;
+  document.getElementById("clearHistoryBtn").onclick=clearHistory;
+  document.getElementById("closeModalBtn").onclick=hideModal;
+  document.getElementById("copyJsonBtn").onclick=copyJson;
+  document.getElementById("applyJsonBtn").onclick=applyImported;
+  document.querySelectorAll(".speedBtn").forEach(b=>b.onclick=()=>{params.global.simSpeed=Number(b.dataset.speed);validateParams();updateUI()});
+  document.getElementById("modalBg").onclick=e=>{if(e.target.id==="modalBg")hideModal()};
+  window.addEventListener("resize",resizeAll);
+}
+function loop(now){const dt=Math.min(.05,(now-lastFrame)/1000);lastFrame=now;if(running){updateMovement(dt);handleCollisions();ecologyAcc+=dt;while(ecologyAcc>=FIXED.ecologyInterval){ecologyAcc-=FIXED.ecologyInterval;ecologicalStep(FIXED.ecologyInterval*params.global.simSpeed)}}drawHabitat();requestAnimationFrame(loop)}
+function init(){resizeAll();buildChartFilters();buildSpeciesPicker();bind();clearHabitat();requestAnimationFrame(loop)}
+init();
+</script>
+</body>
+</html>
